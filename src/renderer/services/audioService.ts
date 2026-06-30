@@ -415,6 +415,12 @@ class AudioService {
         this.filters[this.filters.length - 1].connect(this.gainNode);
         this.gainNode.connect(this.context.destination);
       }
+
+      // 重连检测器到 gainNode（gainNode.disconnect() 会断开所有输出）
+      try { climaxDetector.disconnect(); } catch {}
+      try { drumDetector.disconnect(); } catch {}
+      climaxDetector.connect(this.context, this.gainNode);
+      drumDetector.connect(this.context, this.gainNode);
     } catch (error) {
       console.error('Error applying EQ state, attempting fallback:', error);
       // Fallback: connect source directly to destination

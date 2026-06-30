@@ -4,6 +4,7 @@ import type { AudioOutputDevice } from '@/types/audio';
 import type { SongResult } from '@/types/music';
 import { isElectron } from '@/utils'; // 导入isElectron常量
 import { climaxDetector } from './climaxDetector';
+import { drumDetector } from './drumDetector';
 
 class AudioService {
   private currentSound: Howl | null = null;
@@ -352,8 +353,9 @@ class AudioService {
         return filter;
       });
 
-      // 连接高潮检测器（只读旁路，不影响音频路径）
+      // 连接高潮检测器和鼓点检测器（只读旁路，不影响音频路径）
       climaxDetector.connect(this.context, this.source);
+      drumDetector.connect(this.context, this.source);
 
       // 应用EQ状态
       this.applyBypassState();

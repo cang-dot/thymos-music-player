@@ -1,20 +1,60 @@
 /**
- * 简化版 TTML 歌词解析器
- * 
- * 基于 applemusic-like-lyrics 的 TTML 解析逻辑简化而来
- * 主要支持：行级时间戳 + 背景词（isBG）标记
- * 
- * 许可证：本文件基于 AGPL-3.0 协议的 applemusic-like-lyrics 项目代码
+ * TTML/LRC 歌词解析器
+ *
+ * 原创实现，支持：
+ * - 标准 LRC 时间戳格式 [mm:ss.xx]
+ * - 背景词（isBG）标记：以括号包裹的行
+ * - 逐词时间戳 <mm:ss.xx>word
  */
 
 import type { ILyricText } from '@/types/music';
 
 /**
- * 解析 TTML 格式歌词
+ * 解析 LRC 时间戳 [mm:ss.xx] 或 [mm:ss.xxx]
+ */
+function parseTimestamp(ts: string): number {
+  const parts = ts.match(/^(\d{1,2}):(\d{2})(?:\.(\d{2,3}))?$/);
+  if (!parts) return 0;
+  const min = parseInt(parts[1], 10);
+  const sec = parseInt(parts[2], 10);
+  const ms = parts[3] ? parseInt(parts[3].padEnd(3, '0'), 10) : 0;
+  return min * 60000 + sec * 1000 + ms;
+}
+
+/**
+ * 从歌词行中提取所有逐词时间戳和对应文本
+ * 格式：<00:25.47>逐词歌词
+ */
+function extractWords(text: string): { text: string; startTime: number; duration: number }[] | undefined {
+  const wordPattern = /<(\d{1,2}:\d{2}\.\d{2,3})>([^<]*)/g;
+  const words: { text: string; startTime: number; duration: number }[] = [];
+  let match;
+  let prevTime = -1;
+
+  while ((match = wordPattern.exec(text)) !== null) {
+    const time = parseTimestamp(match[1]);
+    const wordText = match[2].trim();
+    if (wordText) {
+      words.push({
+        text: wordText,
+        startTime: prevTime >= 0 ? prevTime : time,
+        duration: prevTime >= 0 ? time - prevTime : 0
+      });
+      prevTime = time;
+    }
+  }
+
+  return words.length > 0 ? words : undefined;
+}
+
+/**
+ * 解析 TTML/LRC 格式歌词
+ *
  * 支持格式：
  * - [00:25.47]歌词文本
  * - [00:25.47]<00:25.47>逐词歌词
- * - <span ttm:role="x-bg">背景词</span>（HTML标签内的背景词）
+ * - (背景词文本) — 以括号包裹的行标记为背景词
+ * - 纯文本行（关联到上一行的时间戳）
  */
 export function parseTtml(lyricsStr: string): ILyricText[] {
   const lines = lyricsStr.trim().split('\n');
@@ -24,32 +64,35 @@ export function parseTtml(lyricsStr: string): ILyricText[] {
     const trimmed = line.trim();
     if (!trimmed) continue;
 
-    // 检测标准 LRC 格式
-    const lrcMatch = trimmed.match(/^\[(\d{1,2}):(\d{2})(?:\.(\d{2,3}))?\](.*)$/);
+    // 标准 LRC 格式：[mm:ss.xx]文本
+    const lrcMatch = trimmed.match(/^\[(\d{1,2}:\d{2}(?:\.\d{2,3})?)\](.*)$/);
     if (lrcMatch) {
-      const minutes = parseInt(lrcMatch[1], 10);
-      const seconds = parseInt(lrcMatch[2], 10);
-      const ms = lrcMatch[3] ? parseInt(lrcMatch[3].padEnd(3, '0'), 10) : 0;
-      const startTime = minutes * 60000 + seconds * 1000 + ms;
-      const text = lrcMatch[4].trim();
+      const startTime = parseTimestamp(lrcMatch[1]);
+      const text = lrcMatch[2].trim();
 
       if (text) {
+        const words = extractWords(text);
+        // 如果有逐词时间戳，清除标签只保留纯文本
+        const cleanText = words
+          ? text.replace(/<\d{1,2}:\d{2}\.\d{2,3}>/g, '').trim()
+          : text;
+
         result.push({
-          text,
+          text: cleanText,
           trText: '',
           startTime,
-          isBG: false
+          isBG: false,
+          words
         });
       }
       continue;
     }
 
-    // 检测背景词标记：以 ( 开头的行视为背景词
+    // 背景词标记：以 ( 开头的行
     const bgMatch = trimmed.match(/^\((.+)\)$/);
     if (bgMatch) {
       const bgText = bgMatch[1].trim();
       if (bgText && result.length > 0) {
-        // 关联到上一行歌词
         const lastLine = result[result.length - 1];
         result.push({
           text: bgText,
@@ -61,7 +104,7 @@ export function parseTtml(lyricsStr: string): ILyricText[] {
       continue;
     }
 
-    // 纯文本行
+    // 纯文本行：关联到上一行的时间戳
     if (trimmed && result.length > 0) {
       const lastLine = result[result.length - 1];
       result.push({
@@ -78,34 +121,17 @@ export function parseTtml(lyricsStr: string): ILyricText[] {
 
 /**
  * 从 HTML 内容中提取背景词
- * 解析格式：<span ttm:role="x-bg">背景词文本</span>
+ * 解析 <span ttm:role="x-bg">文本</span> 格式
  */
 export function extractBackgroundFromHtml(html: string): string | null {
   const bgMatch = html.match(/<span[^>]*ttm:role="x-bg"[^>]*>([^<]*)<\/span>/i);
-  if (bgMatch) {
-    return bgMatch[1].trim();
-  }
-  return null;
+  return bgMatch ? bgMatch[1].trim() : null;
 }
 
 /**
- * 将 TTML 解析结果转换为 lrcArray 格式
+ * 将歌词行转换为 lrcArray 格式
  * 背景词作为 isBG=true 的行插入到主歌词之后
  */
-export function ttmlToLrcArray(ttmlLines: ILyricText[]): ILyricText[] {
-  const result: ILyricText[] = [];
-  let lastMainLine: ILyricText | null = null;
-
-  for (const line of ttmlLines) {
-    if (line.isBG) {
-      // 背景词：紧跟在主歌词后面
-      result.push(line);
-      lastMainLine = null;
-    } else {
-      result.push(line);
-      lastMainLine = line;
-    }
-  }
-
-  return result;
+export function ttmlToLrcArray(lines: ILyricText[]): ILyricText[] {
+  return lines.map((line) => ({ ...line }));
 }

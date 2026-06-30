@@ -8,15 +8,14 @@
         @mousemove="handleMouseMove"
         @mouseleave="handleMouseLeave"
       >
-        <!-- 背景层：封面模糊 + 烟雾 -->
+        <!-- 背景层：封面模糊 + Aurora 极光 -->
         <div class="background-cover" :style="backgroundCoverStyle"></div>
-        <div class="background-smoke smoke-1" :style="smokeStyle1"></div>
-        <div class="background-smoke smoke-2" :style="smokeStyle2"></div>
-        <div class="background-smoke smoke-3" :style="smokeStyle3"></div>
-        <div class="background-smoke smoke-4" :style="smokeStyle4"></div>
-        <div class="background-vignette"></div>
-        <!-- 浮动粒子 -->
-        <div class="particles-container" ref="particlesContainer"></div>
+        <Aurora
+          :colorStops="auroraColorStops"
+          :amplitude="auroraAmplitude"
+          :blend="0.5"
+          :speed="0.8"
+        />
 
         <!-- 左上角：关闭按钮 -->
         <transition name="close-fade">
@@ -131,6 +130,7 @@ import { AnimationSelector } from '@/utils/animationSelector';
 import { DEFAULT_LYRIC_CONFIG } from '@/types/lyric';
 
 import LyricSettings from './LyricSettings.vue';
+import Aurora from '@/components/Aurora.vue';
 
 // 从 localStorage 读取动画强度设置
 const animationIntensity = computed<'soft' | 'normal' | 'power'>(() => {
@@ -232,8 +232,22 @@ function cyclePlayerStyle() {
 
 const accentColor = ref('rgb(220, 200, 170)');
 const accentColorRgb = ref('220, 200, 170');
-const smokeColor = ref('#c8b896');
-const smokeColor2 = ref('#b8a886');
+
+// Aurora 极光颜色：从封面取色生成三色渐变
+const auroraColorStops = computed(() => {
+  const rgb = accentColorRgb.value;
+  const [r, g, b] = rgb.split(',').map(Number);
+  // 深色底色
+  const dark = `rgb(${Math.round(r * 0.2)}, ${Math.round(g * 0.2)}, ${Math.round(b * 0.3)})`;
+  // 中间色：强调色本身
+  const mid = `rgb(${r}, ${g}, ${b})`;
+  // 亮色：高亮版本
+  const bright = `rgb(${Math.min(255, Math.round(r * 1.4))}, ${Math.min(255, Math.round(g * 1.3))}, ${Math.min(255, Math.round(b * 1.2))})`;
+  return [dark, mid, bright];
+});
+
+// Aurora 振幅：高潮时增强
+const auroraAmplitude = computed(() => isInClimax.value ? 1.5 : 1.0);
 
 // ==================== 高潮段落 ====================
 
@@ -288,13 +302,6 @@ watch(
       const warmB = Math.min(255, Math.round(b * 0.8 + 40));
       accentColor.value = `rgb(${warmR}, ${warmG}, ${warmB})`;
       accentColorRgb.value = `${warmR}, ${warmG}, ${warmB}`;
-
-      // 烟雾色：更亮
-      const sbr = Math.min(255, Math.round(r * 1.6));
-      const sbg = Math.min(255, Math.round(g * 1.5));
-      const sbb = Math.min(255, Math.round(b * 1.2));
-      smokeColor.value = `rgb(${sbr}, ${sbg}, ${sbb})`;
-      smokeColor2.value = `rgb(${Math.min(255, sbr - 20)}, ${Math.min(255, sbg - 15)}, ${Math.min(255, sbb - 10)})`;
     } catch {}
   },
   { immediate: true }
@@ -310,26 +317,6 @@ const backgroundCoverStyle = computed(() => {
     transform: 'scale(1.2)'
   };
 });
-
-const smokeStyle1 = computed(() => ({
-  background: `radial-gradient(ellipse at 25% 75%, ${smokeColor.value} 0%, transparent 55%)`,
-  opacity: smokeIntensity.value,
-}));
-
-const smokeStyle2 = computed(() => ({
-  background: `radial-gradient(ellipse at 75% 25%, ${smokeColor2.value} 0%, transparent 50%)`,
-  opacity: smokeIntensity.value,
-}));
-
-const smokeStyle3 = computed(() => ({
-  background: `radial-gradient(ellipse at 50% 50%, ${smokeColor.value} 0%, transparent 45%)`,
-  opacity: smokeIntensity.value,
-}));
-
-const smokeStyle4 = computed(() => ({
-  background: `radial-gradient(ellipse at 80% 80%, ${smokeColor2.value} 0%, transparent 40%)`,
-  opacity: smokeIntensity.value,
-}));
 
 // ==================== 歌词样式（响应式字号） ====================
 
@@ -369,10 +356,8 @@ const lyricStyle = computed(() => ({
 
 const isFullScreen = ref(false);
 const lyricRef = ref<HTMLElement | null>(null);
-const particlesContainer = ref<HTMLElement | null>(null);
 const displayText = ref('');
 let currentTimeline: gsap.core.Timeline | null = null;
-let particleInterval: ReturnType<typeof setInterval> | null = null;
 let lastProcessedIndex = -1;
 let pendingRafId: number | null = null;
 let animationCycleId = 0;
@@ -759,105 +744,6 @@ function createParticle() {
   will-change: transform;
   transition: background 2s ease;
   mix-blend-mode: screen;
-}
-
-.smoke-1 {
-  animation: smoke1Drift 18s ease-in-out infinite alternate,
-             smokeBreath 6s ease-in-out infinite;
-}
-
-.smoke-2 {
-  animation: smoke2Drift 22s ease-in-out infinite alternate,
-             smokeBreath 8s ease-in-out infinite 2s;
-}
-
-.smoke-3 {
-  animation: smoke3Drift 28s ease-in-out infinite alternate,
-             smokeBreath 10s ease-in-out infinite 4s;
-}
-
-.smoke-4 {
-  animation: smoke4Drift 25s ease-in-out infinite alternate,
-             smokeBreath 7s ease-in-out infinite 1s;
-}
-
-@keyframes smoke1Drift {
-  0% { transform: translate(0, 0) scale(1) rotate(0deg); }
-  100% { transform: translate(5%, -4%) scale(1.1) rotate(8deg); }
-}
-
-@keyframes smoke2Drift {
-  0% { transform: translate(0, 0) scale(1) rotate(0deg); }
-  100% { transform: translate(-4%, 5%) scale(1.15) rotate(-6deg); }
-}
-
-@keyframes smoke3Drift {
-  0% { transform: translate(0, 0) scale(1) rotate(0deg); }
-  100% { transform: translate(3%, 3%) scale(1.08) rotate(10deg); }
-}
-
-@keyframes smoke4Drift {
-  0% { transform: translate(0, 0) scale(1) rotate(0deg); }
-  100% { transform: translate(-3%, -5%) scale(1.12) rotate(-8deg); }
-}
-
-@keyframes smokeBreath {
-  0%, 100% { opacity: 0.7; }
-  50% { opacity: 1; }
-}
-
-.background-vignette {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background: radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.5) 100%);
-  animation: vignettePulse 10s ease-in-out infinite alternate;
-}
-
-@keyframes vignettePulse {
-  0% { opacity: 0.8; }
-  100% { opacity: 1; }
-}
-
-// ==================== 粒子 ====================
-
-.particles-container {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  overflow: hidden;
-  z-index: 1;
-}
-
-.particle {
-  position: absolute;
-  border-radius: 50%;
-  background: rgb(var(--accent-rgb));
-  pointer-events: none;
-  will-change: transform, opacity;
-}
-
-@keyframes particleFloat {
-  0% {
-    transform: translateY(0) translateX(0) scale(0);
-    opacity: 0;
-  }
-  10% {
-    opacity: 0.6;
-    transform: translateY(-10vh) translateX(5px) scale(1);
-  }
-  50% {
-    opacity: 0.4;
-    transform: translateY(-50vh) translateX(-10px) scale(0.8);
-  }
-  90% {
-    opacity: 0.1;
-    transform: translateY(-90vh) translateX(15px) scale(0.5);
-  }
-  100% {
-    opacity: 0;
-    transform: translateY(-100vh) translateX(0) scale(0);
-  }
 }
 
 // ==================== 控制按钮 ====================

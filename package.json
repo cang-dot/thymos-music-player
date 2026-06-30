@@ -1,6 +1,6 @@
 {
   "name": "ZephyrusPlayer",
-  "version": "0.9.4",
+  "version": "0.9.5",
   "description": "Zephyrus Player",
   "author": "Zephyrus <WEISTUDIOWEI@126.com>",
   "main": "./out/main/index.js",
@@ -56,6 +56,7 @@
     "node-fetch": "^2.7.0",
     "node-id3": "^0.2.9",
     "node-machine-id": "^1.1.12",
+    "ogl": "^1.0.11",
     "pinia-plugin-persistedstate": "^4.7.1",
     "vue-i18n": "^11.2.2"
   },

@@ -21,6 +21,9 @@ import { createMainWindow, initializeWindowManager, setAppQuitting } from './mod
 import { initWindowSizeManager } from './modules/window-size';
 import { startMusicApi } from './server';
 
+// 忽略自签名证书验证（开发环境）
+app.commandLine.appendSwitch('ignore-certificate-errors');
+
 // 导入所有图标
 const iconPath = join(__dirname, '../../resources');
 const icon = nativeImage.createFromPath(

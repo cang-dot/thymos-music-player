@@ -12,15 +12,17 @@
     ]"
     @mousemove="handlePlayBarMouseMove"
     :style="{
-      color: musicFullVisible && isMagazineMode
+      color: musicFullVisible && isFrenzyMode
         ? '#000000'
-        : musicFullVisible
-          ? textColors.theme === 'dark'
-            ? '#000000'
-            : '#ffffff'
-          : settingsStore.theme === 'dark'
-            ? '#ffffff'
-            : '#000000'
+        : musicFullVisible && isMagazineMode
+          ? '#000000'
+          : musicFullVisible
+            ? textColors.theme === 'dark'
+              ? '#000000'
+              : '#ffffff'
+            : settingsStore.theme === 'dark'
+              ? '#ffffff'
+              : '#000000'
     }"
   >
     <div class="music-time custom-slider">
@@ -355,16 +357,19 @@ function resetCollapseTimer() {
 
 // 检测是否在排版播放器模式（ref + 监听事件，响应式更新）
 const isMagazineMode = ref(false);
+const isFrenzyMode = ref(false);
 function updateMagazineMode() {
   try {
     const saved = localStorage.getItem('music-full-config');
     if (saved) {
       const config = JSON.parse(saved);
       isMagazineMode.value = config.playerStyle === 'magazine';
+      isFrenzyMode.value = config.playerStyle === 'frenzy';
       return;
     }
   } catch {}
   isMagazineMode.value = false;
+  isFrenzyMode.value = false;
 }
 updateMagazineMode();
 window.addEventListener('music-full-config-updated', updateMagazineMode);

@@ -29,6 +29,7 @@ export * from './modules/playlist';
 export * from './modules/recommend';
 export * from './modules/search';
 export * from './modules/settings';
+export * from './modules/styleEngine';
 export * from './modules/user';
 
 export default pinia;

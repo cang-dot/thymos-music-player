@@ -74,7 +74,7 @@
         </div>
         <div class="slider-group">
           <label class="slider-label">{{ t('settings.lyricSettings.contentWidth') }}</label>
-          <input type="range" v-model.number="config.contentWidth" min="50" max="100" step="5" class="slider-emerald" />
+          <input type="range" v-model.number="config.contentWidth" min="50" max="100" step="5" class="slider-emerald" :style="{ '--val-pct': sliderPct(config.contentWidth, 50, 100) }" />
           <div class="slider-marks"><span>50%</span><span>75%</span><span>100%</span></div>
         </div>
 
@@ -83,7 +83,7 @@
         <!-- 文字设置 -->
         <div class="slider-group">
           <label class="slider-label">{{ t('settings.lyricSettings.fontSize') }}</label>
-          <input type="range" v-model.number="config.fontSize" min="12" max="32" step="1" class="slider-emerald" />
+          <input type="range" v-model.number="config.fontSize" min="12" max="32" step="1" class="slider-emerald" :style="{ '--val-pct': sliderPct(config.fontSize, 12, 32) }" />
           <div class="slider-marks">
             <span>{{ t('settings.lyricSettings.fontSizeMarks.small') }}</span>
             <span>{{ t('settings.lyricSettings.fontSizeMarks.medium') }}</span>
@@ -92,7 +92,7 @@
         </div>
         <div class="slider-group">
           <label class="slider-label">{{ t('settings.lyricSettings.letterSpacing') }}</label>
-          <input type="range" v-model.number="config.letterSpacing" min="-2" max="10" step="0.2" class="slider-emerald" />
+          <input type="range" v-model.number="config.letterSpacing" min="-2" max="10" step="0.2" class="slider-emerald" :style="{ '--val-pct': sliderPct(config.letterSpacing, -2, 10) }" />
           <div class="slider-marks">
             <span>{{ t('settings.lyricSettings.letterSpacingMarks.compact') }}</span>
             <span>{{ t('settings.lyricSettings.letterSpacingMarks.default') }}</span>
@@ -101,7 +101,7 @@
         </div>
         <div class="slider-group">
           <label class="slider-label">{{ t('settings.lyricSettings.fontWeight') }}</label>
-          <input type="range" v-model.number="config.fontWeight" min="100" max="900" step="100" class="slider-emerald" />
+          <input type="range" v-model.number="config.fontWeight" min="100" max="900" step="100" class="slider-emerald" :style="{ '--val-pct': sliderPct(config.fontWeight, 100, 900) }" />
           <div class="slider-marks">
             <span>{{ t('settings.lyricSettings.fontWeightMarks.thin') }}</span>
             <span>{{ t('settings.lyricSettings.fontWeightMarks.normal') }}</span>
@@ -110,7 +110,7 @@
         </div>
         <div class="slider-group">
           <label class="slider-label">{{ t('settings.lyricSettings.lineHeight') }}</label>
-          <input type="range" v-model.number="config.lineHeight" min="1" max="3" step="0.1" class="slider-emerald" />
+          <input type="range" v-model.number="config.lineHeight" min="1" max="3" step="0.1" class="slider-emerald" :style="{ '--val-pct': sliderPct(config.lineHeight, 1, 3) }" />
           <div class="slider-marks">
             <span>{{ t('settings.lyricSettings.lineHeightMarks.compact') }}</span>
             <span>{{ t('settings.lyricSettings.lineHeightMarks.default') }}</span>
@@ -187,12 +187,12 @@
             </div>
             <div class="slider-group">
               <label class="slider-label">{{ t('settings.lyricSettings.background.imageBlur') }}</label>
-              <input type="range" v-model.number="config.imageBlur" min="0" max="20" step="1" class="slider-emerald" />
+              <input type="range" v-model.number="config.imageBlur" min="0" max="20" step="1" class="slider-emerald" :style="{ '--val-pct': sliderPct(config.imageBlur, 0, 20) }" />
               <div class="slider-marks"><span>0</span><span>10</span><span>20px</span></div>
             </div>
             <div class="slider-group">
               <label class="slider-label">{{ t('settings.lyricSettings.background.imageBrightness') }}</label>
-              <input type="range" v-model.number="config.imageBrightness" min="0" max="200" step="5" class="slider-emerald" />
+              <input type="range" v-model.number="config.imageBrightness" min="0" max="200" step="5" class="slider-emerald" :style="{ '--val-pct': sliderPct(config.imageBrightness, 0, 200) }" />
               <div class="slider-marks"><span>暗</span><span>正常</span><span>亮</span></div>
             </div>
           </div>
@@ -260,12 +260,159 @@
           <input type="checkbox" v-model="config.gridRhythmColor" class="toggle-switch" />
         </div>
       </div>
+
+      <!-- 粗粝样式设置（接管原狂躁模式） -->
+      <div v-if="styleSettingsView === 'gritty'" class="space-y-2 pt-2">
+        <div class="setting-item">
+          <span>红字重点词</span>
+          <input type="checkbox" v-model="config.grittyShowRedKeywords" class="toggle-switch" />
+        </div>
+        <div class="setting-item">
+          <span>背景扫描线</span>
+          <input type="checkbox" v-model="config.grittyShowScanlines" class="toggle-switch" />
+        </div>
+
+        <div class="radio-group-divider"></div>
+
+        <div class="setting-item">
+          <span>强调字始终红色</span>
+          <input type="checkbox" :checked="config.grittyKeywordColorMode === 'red'" @change="config.grittyKeywordColorMode = $event.target.checked ? 'red' : 'cover'" class="toggle-switch" />
+        </div>
+        <div class="setting-item" v-if="config.grittyKeywordColorMode !== 'red'">
+          <span>颜色跟随封面</span>
+          <input type="checkbox" :checked="config.grittyKeywordColorMode === 'cover'" @change="config.grittyKeywordColorMode = $event.target.checked ? 'cover' : 'custom'" class="toggle-switch" />
+        </div>
+        <div class="setting-item" v-if="config.grittyKeywordColorMode === 'custom'">
+          <span>自定义强调色</span>
+          <input type="color" v-model="config.grittyKeywordCustomColor" class="color-picker" />
+        </div>
+
+        <div class="radio-group-divider"></div>
+
+        <div class="slider-group">
+          <label class="slider-label">故障强度</label>
+          <input type="range" v-model.number="config.grittyGlitchIntensity" min="0" max="1" step="0.05" class="slider-emerald" :style="{ '--val-pct': sliderPct(config.grittyGlitchIntensity, 0, 1) }" />
+          <div class="slider-marks"><span>弱</span><span>中</span><span>强</span></div>
+        </div>
+        <div class="slider-group">
+          <label class="slider-label">红字缩放</label>
+          <input type="range" v-model.number="config.grittyRedScale" min="1" max="2" step="0.1" class="slider-emerald" :style="{ '--val-pct': sliderPct(config.grittyRedScale, 1, 2) }" />
+          <div class="slider-marks"><span>正常</span><span>中等</span><span>夸张</span></div>
+        </div>
+        <div class="slider-group">
+          <label class="slider-label">垂直拉伸</label>
+          <input type="range" v-model.number="config.grittyVerticalStretch" min="1" max="2" step="0.05" class="slider-emerald" :style="{ '--val-pct': sliderPct(config.grittyVerticalStretch, 1, 2) }" />
+          <div class="slider-marks"><span>正常</span><span>中等</span><span>拉伸</span></div>
+        </div>
+        <div class="slider-group">
+          <label class="slider-label">整体缩放</label>
+          <input type="range" v-model.number="config.grittyScale" min="0.5" max="2" step="0.05" class="slider-emerald" :style="{ '--val-pct': sliderPct(config.grittyScale, 0.5, 2) }" />
+          <div class="slider-marks"><span>小</span><span>正常</span><span>大</span></div>
+        </div>
+        <div class="slider-group">
+          <label class="slider-label">字体粗细</label>
+          <input type="range" v-model.number="config.grittyFontWeight" min="100" max="900" step="100" class="slider-emerald" :style="{ '--val-pct': sliderPct(config.grittyFontWeight, 100, 900) }" />
+          <div class="slider-marks"><span>细</span><span>正常</span><span>粗</span></div>
+        </div>
+        <div class="radio-group" style="position: relative;">
+          <label class="radio-label">字体</label>
+          <div class="font-dropdown" ref="fontDropdownRef">
+            <div class="font-dropdown__trigger" @click="showFontDropdown = !showFontDropdown">
+              <span :style="{ fontFamily: `'${config.grittyCustomFont}', sans-serif` }">{{ config.grittyCustomFont }}</span>
+              <i class="ri-arrow-down-s-line" :class="{ 'rotate-180': showFontDropdown }"></i>
+            </div>
+            <Transition name="dropdown">
+              <div v-if="showFontDropdown" class="font-dropdown__panel">
+                <div
+                  v-for="font in systemFontOptions"
+                  :key="font"
+                  class="font-dropdown__item"
+                  :class="{ active: config.grittyCustomFont === font }"
+                  :style="{ fontFamily: `'${font}', sans-serif` }"
+                  @click="selectGrittyFont(font)"
+                >{{ font }}</div>
+              </div>
+            </Transition>
+          </div>
+        </div>
+      </div>
+
+      <!-- 狂躁样式设置（初稿：白色背景、轻微故障） -->
+      <div v-if="styleSettingsView === 'frenzy'" class="space-y-2 pt-2">
+        <div class="setting-item">
+          <span>红字重点词</span>
+          <input type="checkbox" v-model="config.frenzyShowRedKeywords" class="toggle-switch" />
+        </div>
+        <div class="setting-item">
+          <span>背景扫描线</span>
+          <input type="checkbox" v-model="config.frenzyShowScanlines" class="toggle-switch" />
+        </div>
+
+        <div class="radio-group-divider"></div>
+
+        <div class="setting-item">
+          <span>强调字始终红色</span>
+          <input type="checkbox" :checked="config.frenzyKeywordColorMode === 'red'" @change="config.frenzyKeywordColorMode = $event.target.checked ? 'red' : 'cover'" class="toggle-switch" />
+        </div>
+        <div class="setting-item" v-if="config.frenzyKeywordColorMode !== 'red'">
+          <span>颜色跟随封面</span>
+          <input type="checkbox" :checked="config.frenzyKeywordColorMode === 'cover'" @change="config.frenzyKeywordColorMode = $event.target.checked ? 'cover' : 'custom'" class="toggle-switch" />
+        </div>
+        <div class="setting-item" v-if="config.frenzyKeywordColorMode === 'custom'">
+          <span>自定义强调色</span>
+          <input type="color" v-model="config.frenzyKeywordCustomColor" class="color-picker" />
+        </div>
+
+        <div class="radio-group-divider"></div>
+
+        <div class="slider-group">
+          <label class="slider-label">故障强度</label>
+          <input type="range" v-model.number="config.frenzyGlitchIntensity" min="0" max="1" step="0.05" class="slider-emerald" :style="{ '--val-pct': sliderPct(config.frenzyGlitchIntensity, 0, 1) }" />
+          <div class="slider-marks"><span>弱</span><span>中</span><span>强</span></div>
+        </div>
+        <div class="slider-group">
+          <label class="slider-label">垂直拉伸</label>
+          <input type="range" v-model.number="config.frenzyVerticalStretch" min="1" max="2" step="0.05" class="slider-emerald" :style="{ '--val-pct': sliderPct(config.frenzyVerticalStretch, 1, 2) }" />
+          <div class="slider-marks"><span>正常</span><span>中等</span><span>拉伸</span></div>
+        </div>
+        <div class="slider-group">
+          <label class="slider-label">整体缩放</label>
+          <input type="range" v-model.number="config.frenzyScale" min="0.5" max="2" step="0.05" class="slider-emerald" :style="{ '--val-pct': sliderPct(config.frenzyScale, 0.5, 2) }" />
+          <div class="slider-marks"><span>小</span><span>正常</span><span>大</span></div>
+        </div>
+        <div class="slider-group">
+          <label class="slider-label">字体粗细</label>
+          <input type="range" v-model.number="config.frenzyFontWeight" min="100" max="900" step="100" class="slider-emerald" :style="{ '--val-pct': sliderPct(config.frenzyFontWeight, 100, 900) }" />
+          <div class="slider-marks"><span>细</span><span>正常</span><span>粗</span></div>
+        </div>
+        <div class="radio-group" style="position: relative;">
+          <label class="radio-label">字体</label>
+          <div class="font-dropdown" ref="fontDropdownRef">
+            <div class="font-dropdown__trigger" @click="showFontDropdown = !showFontDropdown">
+              <span :style="{ fontFamily: `'${config.frenzyCustomFont}', sans-serif` }">{{ config.frenzyCustomFont }}</span>
+              <i class="ri-arrow-down-s-line" :class="{ 'rotate-180': showFontDropdown }"></i>
+            </div>
+            <Transition name="dropdown">
+              <div v-if="showFontDropdown" class="font-dropdown__panel">
+                <div
+                  v-for="font in systemFontOptions"
+                  :key="font"
+                  class="font-dropdown__item"
+                  :class="{ active: config.frenzyCustomFont === font }"
+                  :style="{ fontFamily: `'${font}', sans-serif` }"
+                  @click="selectFont(font)"
+                >{{ font }}</div>
+              </div>
+            </Transition>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue';
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import { DEFAULT_LYRIC_CONFIG, LyricConfig } from '@/types/lyric';
@@ -277,6 +424,10 @@ const config = ref<LyricConfig>({ ...DEFAULT_LYRIC_CONFIG });
 const emit = defineEmits(['themeChange']);
 const message = window.$message;
 const fileInput = ref<HTMLInputElement>();
+
+function sliderPct(val: number, min: number, max: number): string {
+  return `${((val - min) / (max - min)) * 100}%`;
+}
 
 const showMiniPlayBar = computed({
   get: () => !config.value.hideMiniPlayBar,
@@ -298,11 +449,46 @@ const gridDensityOptions = computed(() => [
   { label: '20列', value: 20 }
 ]);
 
+const systemFontOptions = ref<string[]>(['PingFang SC', 'Microsoft YaHei', 'SimHei']);
+
+const showFontDropdown = ref(false);
+const fontDropdownRef = ref<HTMLElement | null>(null);
+
+function selectFont(font: string) {
+  config.value.frenzyCustomFont = font;
+  showFontDropdown.value = false;
+}
+
+function selectGrittyFont(font: string) {
+  config.value.grittyCustomFont = font;
+  showFontDropdown.value = false;
+}
+
+function handleClickOutside(e: MouseEvent) {
+  if (fontDropdownRef.value && !fontDropdownRef.value.contains(e.target as Node)) {
+    showFontDropdown.value = false;
+  }
+}
+
+onMounted(async () => {
+  try {
+    const fonts = await window.api.invoke('get-system-fonts');
+    if (Array.isArray(fonts) && fonts.length > 0) {
+      systemFontOptions.value = fonts;
+    }
+  } catch {
+    // 保留默认列表
+  }
+  document.addEventListener('click', handleClickOutside);
+});
+
 const playerStyles = computed(() => [
   { key: 'default', label: '默认' },
   { key: 'classic', label: '经典' },
   { key: 'stage', label: '舞台' },
-  { key: 'magazine', label: '杂志' }
+  { key: 'magazine', label: '杂志' },
+  { key: 'gritty', label: '粗粝' },
+  { key: 'frenzy', label: '狂躁' }
 ]);
 
 // 样式设置视图：null=主视图，其他=样式设置
@@ -314,6 +500,8 @@ const styleSettingsTitle = computed(() => {
     classic: '经典样式设置',
     stage: '舞台样式设置',
     magazine: '杂志样式设置',
+    gritty: '粗粝样式设置',
+    frenzy: '狂躁样式设置',
   };
   return titles[styleSettingsView.value || 'default'] || '样式设置';
 });
@@ -409,6 +597,10 @@ onMounted(() => {
     config.value = { ...config.value, ...JSON.parse(savedConfig) };
     updateCSSVariables(config.value);
   }
+});
+
+onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutside);
 });
 
 defineExpose({
@@ -664,10 +856,10 @@ defineExpose({
 .slider-emerald {
   width: 100%;
   height: 4px;
-  background: rgba(255, 255, 255, 0.1);
   border-radius: 2px;
   outline: none;
   appearance: none;
+  background: linear-gradient(to right, var(--accent) 0%, var(--accent) var(--val-pct, 50%), rgba(255,255,255,0.1) var(--val-pct, 50%), rgba(255,255,255,0.1) 100%);
 }
 
 .slider-emerald::-webkit-slider-thumb {
@@ -872,6 +1064,79 @@ defineExpose({
 .select-input:focus {
   border-color: var(--accent);
   box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.1);
+}
+
+/* 自定义字体下拉 */
+.font-dropdown {
+  position: relative;
+}
+
+.font-dropdown__trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 10px 12px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 14px;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.font-dropdown__trigger:hover {
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.font-dropdown__trigger i {
+  transition: transform 0.2s;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.font-dropdown__panel {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  max-height: 280px;
+  overflow-y: auto;
+  background: #1a1a1e;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+  z-index: 100;
+  padding: 4px;
+}
+
+.font-dropdown__item {
+  padding: 8px 12px;
+  border-radius: 6px;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.font-dropdown__item:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.font-dropdown__item.active {
+  background: rgba(var(--accent-rgb), 0.2);
+  color: var(--accent);
+}
+
+/* 下拉动画 */
+.dropdown-enter-active,
+.dropdown-leave-active {
+  transition: opacity 0.15s, transform 0.15s;
+}
+.dropdown-enter-from,
+.dropdown-leave-to {
+  opacity: 0;
+  transform: translateY(-4px);
 }
 
 /* 滚动条 */

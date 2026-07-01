@@ -16,7 +16,7 @@
 <script setup lang="ts">
 import { cloneDeep } from 'lodash';
 import { darkTheme, lightTheme } from 'naive-ui';
-import { computed, nextTick, onMounted, ref, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 
@@ -34,6 +34,7 @@ import { initAudioListeners, initMusicHook } from './hooks/MusicHook';
 import { initCoverColor, useCoverColor } from './hooks/useCoverColor';
 import { audioService } from './services/audioService';
 import { initLxMusicRunner } from './services/LxMusicSourceRunner';
+import { useStyleEngineStore } from './store/modules/styleEngine';
 import { isMobile } from './utils';
 import { useAppShortcuts } from './utils/appShortcuts';
 
@@ -45,6 +46,7 @@ const playerCoreStore = usePlayerCoreStore();
 const userStore = useUserStore();
 const router = useRouter();
 const { primaryColor } = useCoverColor();
+const styleEngine = useStyleEngineStore();
 
 // naive-ui 主题覆盖：进度条/强调色跟随封面取色
 const themeOverrides = computed(() => ({
@@ -188,6 +190,13 @@ onMounted(async () => {
   }
 
   audioService.releaseOperationLock();
+
+  // 初始化样式引擎（启动鼓点/高潮检测器）
+  styleEngine.init();
+});
+
+onBeforeUnmount(() => {
+  styleEngine.dispose();
 });
 </script>
 

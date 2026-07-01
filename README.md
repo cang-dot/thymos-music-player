@@ -11,7 +11,7 @@
 ![Vite](https://img.shields.io/badge/Vite-6.4-646cff?logo=vite&logoColor=white)
 ![Pinia](https://img.shields.io/badge/Pinia-3.0-ffd859?logo=pinia&logoColor=black)
 
-西风播放器 -- 一个沉浸式音乐播放器，支持动态强调色、Stage 舞台模式、三档歌词动画幅度。
+西风播放器 -- 一个沉浸式音乐播放器，支持动态强调色、Stage 舞台模式、Gritty/Frenzy 全屏歌词模式。
 
 基于 [AlgerMusicPlayer](https://github.com/algerkong/AlgerMusicPlayer) v5.1.0 修改
 
@@ -67,11 +67,13 @@
 - 逐字歌词 (YRC)，每字独立时间轴，渐变进度动画
 - 桌面歌词窗口（置顶、透明、可拖拽、多显示器支持）
 - 3 种歌词显示模式（单行、双行、滚动）
-- 4 种全屏播放器样式：
-  - **默认** -- 分栏布局（封面 + 滚动歌词）
-  - **经典** -- 深色主题
-  - **Stage** -- 沉浸式全屏，烟雾背景、浮动粒子、高潮检测驱动视觉增强
+- 6 种全屏播放器样式：
+  - **默认** -- 标准分栏播放界面（封面 + 滚动歌词）
+  - **经典** -- 深色主题播放界面
+  - **Stage** -- 沉浸式舞台界面（烟雾、粒子、高潮驱动视觉增强）
   - **杂志排版** -- 散落式文字布局，色块装饰，节奏驱动特效
+  - **Gritty（粗粝）** -- 暗色背景、故障效果、双层歌词（黑字拉伸 + 红字强调）
+  - **Frenzy（狂躁）** -- 白色背景、轻微故障、黑字可拉伸 + 红字正常
 - 3 级歌词动画强度（柔和 80ms / 正常 50ms / 力量 18ms）
 - 27+ GSAP 动画预设（滑入、淡入、缩放、模糊、逐字、掉落、震动）
 - 封面色彩提取（Canvas 像素采样，动态主题色级联到全局 UI）
@@ -81,6 +83,17 @@
 - 3D 封面（倾斜/视差效果）
 - 歌词时间校正（手动偏移调整）
 - 歌词翻译（支持 OpenCC 繁体中文）
+
+### 社区重点词
+
+- 服务器存储的重点词标注（高潮段落、关键词、社区歌词）
+- IndexedDB 本地缓存（24h TTL，减少服务器压力）
+- 编辑器：拖动选择连续字符标记为重点词
+- 播放器：自动加载并渲染重点词
+- Gritty/Frenzy 模式设置：
+  - 红字重点词开关
+  - 背景扫描线开关
+  - 强调字颜色模式（始终红色 / 跟随封面主色 / 自定义颜色）
 
 ### UI/UX
 
@@ -126,13 +139,13 @@ npm run dev:web
 # 构建
 npm run build
 
-# 打包 Windows (NSIS 安装包，支持 x64/ia32/arm64)
+# 打包 Windows (NSIS 安装包)
 npm run build:win
 
 # 打包 macOS (DMG + ZIP，支持 x64/arm64)
 npm run build:mac
 
-# 打包 Linux (AppImage / DEB / RPM，支持 x64/arm64)
+# 打包 Linux (AppImage / DEB / RPM)
 npm run build:linux
 
 # 预览生产构建
@@ -182,83 +195,66 @@ src/
 ├── renderer/                      # Vue 3 渲染进程
 │   ├── main.ts                    # 入口：Vue 实例创建、插件注册
 │   ├── App.vue                    # 根组件：主题、语言、启动画面、MusicHook
-│   ├── api/                       # API 层 (16 个模块)
+│   ├── api/                       # API 层
 │   │   ├── music.ts               # 音乐相关 API
 │   │   ├── search.ts              # 搜索 API
 │   │   ├── login.ts               # 登录 API
 │   │   ├── playlist.ts            # 歌单 API
-│   │   └── ...
+│   │   ├── climax.ts              # 高潮段落 API（社区服务器）
+│   │   ├── keywords.ts            # 重点词 API（社区服务器）
+│   │   └── communityLyric.ts      # 社区歌词 API（社区服务器）
 │   ├── components/                # Vue 组件
 │   │   ├── common/                # 通用组件
 │   │   ├── cover/                 # 封面组件 (3D 效果)
 │   │   ├── lyric/                 # 歌词组件
 │   │   │   ├── StagePlayer.vue         # Stage 沉浸式播放器
 │   │   │   ├── TypographicPlayer.vue   # 杂志排版播放器
+│   │   │   ├── GrittyPlayer.vue        # Gritty 粗粝模式播放器
+│   │   │   ├── GrittyLyrics.vue        # Gritty 双层歌词组件
+│   │   │   ├── FrenzyPlayer.vue        # Frenzy 狂躁模式播放器
+│   │   │   ├── FrenzyLyrics.vue        # Frenzy 双层歌词组件
+│   │   │   ├── GlitchBackground.vue    # WebGL 故障背景（扫描线、RGB偏移）
 │   │   │   ├── MusicFull.vue           # 默认全屏播放器
 │   │   │   ├── MusicFullMobile.vue     # 移动端全屏播放器
 │   │   │   ├── MusicFullWrapper.vue    # 样式切换包装器
 │   │   │   ├── LyricSettings.vue       # 歌词设置面板
-│   │   │   ├── StageStarfield.vue      # Stage 星空效果
 │   │   │   └── ThemeColorPanel.vue     # 主题色面板
 │   │   ├── login/                 # 登录组件
 │   │   ├── player/                # 播放条组件
-│   │   │   ├── PlayBar.vue, MobilePlayBar.vue, MiniPlayBar.vue, ...
 │   │   ├── podcast/               # 播客组件
 │   │   ├── settings/              # 设置组件
 │   │   └── splash/                # 启动画面
-│   ├── hooks/                     # 组合式函数 (15 个)
+│   ├── hooks/                     # 组合式函数
 │   │   ├── MusicHook.ts           # 核心音乐播放 hook
 │   │   ├── useCoverColor.ts       # 封面色彩提取
-│   │   ├── useLyricBackground.ts  # 歌词背景效果
-│   │   ├── usePlaybackControl.ts  # 播放控制
 │   │   └── ...
 │   ├── layout/                    # 布局组件
-│   │   ├── AppLayout.vue          # 主布局
-│   │   ├── MiniLayout.vue         # 迷你播放器布局
-│   │   ├── MobileLayout.vue       # 移动端布局
-│   │   └── components/            # 布局子组件 (AppMenu, SearchBar, TitleBar)
 │   ├── router/                    # 路由配置
-│   │   ├── index.ts               # 路由入口
-│   │   ├── home.ts                # 主页路由
-│   │   └── other.ts               # 其他路由
-│   ├── services/                  # 业务服务 (12 个)
+│   ├── services/                  # 业务服务
 │   │   ├── audioService.ts        # 核心音频引擎 (Howler.js + Web Audio API EQ 链)
-│   │   ├── climaxDetector.ts      # 实时高潮检测 (RMS 能量 + 频谱分析)
+│   │   ├── climaxDetector.ts      # 实时高潮检测
 │   │   ├── drumDetector.ts        # 鼓点检测
-│   │   ├── eqService.ts           # 均衡器服务
-│   │   ├── playbackController.ts  # 播放编排
-│   │   ├── preloadService.ts      # 音频预加载
+│   │   ├── cacheService.ts        # IndexedDB 社区数据缓存（高潮/重点词/歌词）
 │   │   └── ...
 │   ├── store/                     # Pinia 状态管理
-│   │   ├── index.ts               # Store 入口
-│   │   └── modules/               # 17 个 Store 模块
-│   │       ├── player.ts          # 聚合播放器 Store (组合 5 个子 Store)
-│   │       ├── playerCore.ts      # 核心播放状态
-│   │       ├── playlist.ts        # 播放列表管理
-│   │       ├── favorite.ts        # 收藏
-│   │       ├── settings.ts        # 应用设置
-│   │       ├── lyric.ts           # 歌词状态
-│   │       ├── climax.ts          # 高潮片段数据
-│   │       └── ...
-│   ├── types/                     # TypeScript 类型定义 (20 个文件)
-│   ├── utils/                     # 工具函数 (21 个文件)
-│   │   ├── stageAnimations.ts     # 27+ GSAP 动画预设 (3 级强度)
-│   │   ├── animationSelector.ts   # 动画选择算法
-│   │   ├── linearColor.ts         # 颜色插值
-│   │   ├── theme.ts               # 主题管理
-│   │   ├── ttmlParser.ts          # TTML 歌词解析器
+│   │   ├── modules/               # Store 模块
+│   │   │   ├── player.ts          # 聚合播放器 Store
+│   │   │   ├── playerCore.ts      # 核心播放状态
+│   │   │   ├── playlist.ts        # 播放列表管理
+│   │   │   ├── styleEngine.ts     # 样式引擎（聚合播放状态、音频特征、社区数据）
+│   │   │   ├── communityData.ts   # 社区数据（高潮/重点词/歌词，IndexedDB 缓存）
+│   │   │   ├── climax.ts          # 高潮片段数据
+│   │   │   └── ...
+│   ├── types/                     # TypeScript 类型定义
+│   │   └── lyric.ts               # 歌词配置类型（含 Gritty/Frenzy 设置）
+│   ├── utils/                     # 工具函数
+│   │   ├── stageAnimations.ts     # 27+ GSAP 动画预设
+│   │   ├── emotionalDetector.ts   # 情感词检测（本地降级方案）
 │   │   ├── yrcParser.ts           # YRC 逐字歌词解析器
 │   │   └── ...
-│   └── views/                     # 页面视图 (22 个目录)
+│   └── views/                     # 页面视图
 │       ├── home/                  # 首页
 │       ├── search/                # 搜索
-│       ├── list/                  # 歌单
-│       ├── album/                 # 专辑
-│       ├── toplist/               # 排行榜
-│       ├── local-music/           # 本地音乐
-│       ├── podcast/               # 播客
-│       ├── lyric/                 # 桌面歌词窗口
-│       ├── heatmap/               # 播放历史热力图
 │       └── ...
 │
 └── shared/                        # 主进程/渲染进程共享
@@ -278,18 +274,21 @@ src/
 | 经典 | 深色主题播放界面 |
 | Stage | 沉浸式舞台界面（烟雾、粒子、高潮驱动视觉增强） |
 | 杂志排版 | 散落式文字布局，色块装饰，节奏驱动特效 |
+| Gritty（粗粝） | 暗色背景、故障效果、双层歌词、可配置红字强调色 |
+| Frenzy（狂躁） | 白色背景、轻微故障、双层歌词、可配置红字强调色 |
 
----
+### Gritty/Frenzy 模式设置
 
-## Stage 模式设置
+在全屏歌词模式下点击齿轮图标，可配置：
 
-在 Stage 模式下点击齿轮图标，可配置：
-
-- **显示**：纯净模式、隐藏封面、居中歌词、显示翻译
-- **界面**：迷你播放栏、内容宽度
-- **排版**：字号、字间距、字重、行高
-- **背景**：自定义背景、主题、背景模式
-- **歌词动画**：柔和 / 正常 / 力量
+- **红字重点词**：开关服务器重点词渲染
+- **背景扫描线**：开关 WebGL 扫描线效果
+- **强调字颜色**：始终红色 / 跟随封面主色 / 自定义颜色
+- **故障强度**：0 ~ 1
+- **垂直拉伸**：1 ~ 2
+- **整体缩放**：0.5 ~ 2
+- **字体粗细**：100 ~ 900
+- **字体**：系统字体选择
 
 ---
 
@@ -298,6 +297,18 @@ src/
 ### 模块化 Store
 
 `player` Store 是一个聚合门面，组合 `playerCore`、`playlist`、`favorite`、`sleepTimer`、`intelligenceMode` 五个子 Store，通过 `storeToRefs` 提供统一 API，同时保持关注点分离。
+
+### 样式引擎 (StyleEngine)
+
+`styleEngine` 聚合播放状态、音频特征、副歌数据、封面颜色、社区数据（重点词），为所有视觉模式提供统一数据源。
+
+### 社区数据流
+
+```
+IndexedDB 缓存 → API 请求 → 缓存
+```
+
+加载顺序：高潮段落 → 重点词 → 社区歌词。每步仅在前置数据存在时继续，结果缓存 24 小时。
 
 ### 音频服务单例
 
@@ -332,7 +343,7 @@ src/
 ## 致谢
 
 - [AlgerMusicPlayer](https://github.com/algerkong/AlgerMusicPlayer) -- 原项目
-- [OGL](https://github.com/oframe/ogl) -- WebGL 渲染库，用于 Aurora 极光背景特效
+- [OGL](https://github.com/oframe/ogl) -- WebGL 渲染库，用于 Glitch 背景特效
 - [GSAP](https://greensock.com/gsap/) -- 动画引擎
 - [Naive UI](https://www.naiveui.com/) -- UI 组件库
 - [Remix Icon](https://remixicon.com/) -- 图标库

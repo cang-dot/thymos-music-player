@@ -1,6 +1,6 @@
 import { cloneDeep } from 'lodash';
 import { createDiscreteApi } from 'naive-ui';
-import { computed, type ComputedRef, nextTick, onUnmounted, ref, watch } from 'vue';
+import { computed, type ComputedRef, nextTick, ref, watch } from 'vue';
 
 import useIndexedDB from '@/hooks/IndexDBHook';
 import { audioService } from '@/services/audioService';
@@ -60,9 +60,12 @@ export const musicDB = await useIndexedDB(
     { name: 'music_lyric', keyPath: 'id' },
     { name: 'api_cache', keyPath: 'id' },
     { name: 'music_url_cache', keyPath: 'id' },
-    { name: 'music_failed_cache', keyPath: 'id' }
+    { name: 'music_failed_cache', keyPath: 'id' },
+    { name: 'climax_cache', keyPath: 'id' },
+    { name: 'keywords_cache', keyPath: 'id' },
+    { name: 'community_lyric_cache', keyPath: 'id' }
   ],
-  3
+  4
 );
 
 // 键盘事件处理器，在初始化后设置
@@ -898,11 +901,6 @@ const setupPlayStateWatcher = () => {
     }
   );
 };
-
-// 在组件卸载时清理资源
-onUnmounted(() => {
-  stopLyricSync();
-});
 
 // 导出歌词解析函数供外部使用
 export { parseLyricsString };
